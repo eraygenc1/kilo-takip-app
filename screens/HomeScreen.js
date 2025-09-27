@@ -1,13 +1,14 @@
 // HomeScreen.js
 
-import { View, Text, Button } from 'react-native'
-import React, { useEffect, useState } from 'react'
+import { View, Text, Button, Touchable, TouchableOpacity , Alert} from 'react-native'
+import React, { useEffect, useState, useMemo} from 'react'
 import AsyncStorage from '@react-native-async-storage/async-storage'
-
+import { Image } from 'react-native';
+import { globalStyles } from "../styles/global";
 export default function HomeScreen({ navigation }) {
   const [userData, setUserData] = useState(null);
 
-  // 🔽 İŞTE BURASI
+ 
   useEffect(() => {
     const fetchData = async () => {
       const jsonValue = await AsyncStorage.getItem('userData');
@@ -21,23 +22,67 @@ export default function HomeScreen({ navigation }) {
     };
     fetchData();
   }, []);
-
+const confirmClearData = () => {
+  Alert.alert(
+    "Emin misiniz?",
+    "Kayıtlı verileriniz silinecek. Devam etmek istiyor musunuz?",
+    [
+      {
+        text: "Vazgeç",
+        style: "cancel"
+      },
+      {
+        text: "Sil",
+        onPress: clearData,
+        style: "destructive"
+      }
+    ],
+    { cancelable: true }
+  );
+};
   const clearData = async () => {
+    
     await AsyncStorage.removeItem('userData');
     navigation.replace('Register');
   };
-  const yorumGetir = () => {
-  const kilo = parseInt(userData.weight); // weight büyük ihtimalle string geliyor
-
-  if (kilo > 80) {
-    return "OBEZSİNİZ";
-  } else if (kilo < 60) {
-    return "Zarganasınız";
+  const { yorum, resim,BMI } = useMemo(() => {
+ if(!userData || !userData.weight){
+  return {yorum:'',resim: null };
+ }
+ const boy = parseInt(userData.height);
+ const boyMetre = boy/100;
+ const kilo = parseInt(userData.weight);
+ const kitleIndeksi = kilo/(boyMetre*boyMetre);
+  if (kitleIndeksi < 20) {
+    return {
+      BMI:kitleIndeksi,
+      yorum: 'Zarganasınız, ağırlık sporu ve kardiyovasküler sporlar beraberinde 2500 üzeri kalori alımı yaparak sağlıklı kilo ve kas alımıyla hayalinizdeki vücuda erişebilirsiniz.',
+      resim: require('../assets/img/zargana.png'),
+    };
+  } else if (kitleIndeksi > 25) {
+    return {
+      BMI:Number(kitleIndeksi.toFixed(1)),
+      yorum: 'Obezsiniz, ciddi manada spor yapmalı ve 2000 kalorinin altında sebze ve protein ağırlıklı beslenmelisiniz.',
+      resim: require('../assets/img/obez.png'),
+    };
   } else {
-    return "Sağlıklısınız!!";
+    return {
+      BMI:kitleIndeksi,
+      yorum: 'Tebrikler, Sağlıklısınız! 2500 Kalori bandında kalori tüketimi yaparak ve 10000 adım atarak kilonuzu koruyabilirsiniz',
+      resim: require('../assets/img/fit.png'),
+    };
   }
-};
+}, [userData]);
 
+const beyHanimGetir = () =>{
+  const cins = userData.gender;
+  if (cins=="male"){
+    return "Bey";
+  }
+  else{
+    return "Hanım";
+  }
+}
 
   if (!userData) {
     return (
@@ -48,12 +93,21 @@ export default function HomeScreen({ navigation }) {
   }
 
   return (
-    <View style={{ padding: 20 }}>
-      <Text style={{ fontSize: 18, marginBottom: 20 }}>
-        Hoşgeldiniz 🎉 {userData.name} Bey,<Text>{yorumGetir()}</Text>
+    
+    <View style={globalStyles.container2}>
+       <View style={{ padding: 50 }}>
+         <Image style={globalStyles.durumGorsel} source={resim}></Image>
+      <Text style={globalStyles.text}>
+        Hoşgeldiniz, {userData.name} {beyHanimGetir()},{"\n"}<Text>Kitle Indeksiniz {BMI}</Text> <Text>{yorum}</Text> 
 
       </Text>
-      <Button title="Çıkış Yap" onPress={clearData} />
+     
+
+      <TouchableOpacity style={globalStyles.Button} onPress={confirmClearData}> <Text style={globalStyles.text}>Verilerim silinsin</Text> </TouchableOpacity>
     </View>
+    </View>
+   
   );
 }
+
+ 
